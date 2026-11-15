@@ -17,6 +17,11 @@ from .workflows import Workflow, TenantSelectionFlow
 from .prompts import Prompts
 from .errors.network import NetworkResponseException, RetryableNetworkException
 from .services.tenant import TenantService, TenantQueryWorker, TenantDAL
+from .services.tenant_cleanup_audit import (
+    TenantCleanUpAuditService,
+    TenantCleanupAuditQueryWorker,
+    TenantCleanupAuditDAL,
+)
 from .db import SQLConnectionManager
 
 
@@ -49,18 +54,34 @@ class App:
             db=self._sql_conn_manager, worker=self._tenant_query_worker
         )
 
+        self._tenant_cleanup_dal = TenantCleanupAuditDAL()
+        self._tenant_cleanup_query_worker = TenantCleanupAuditQueryWorker(
+            cli=self.cli, dal=self._tenant_cleanup_dal
+        )
+
+        self._tenant_cua_service = TenantCleanUpAuditService(
+            cli=self.cli,
+            db=self._sql_conn_manager,
+            worker=self._tenant_cleanup_query_worker,
+        )
+
     def run(self):
 
         self.start_up()
 
-        TenantSelectionFlow(
+        workflows: dict[RUN_MENU, Workflow] = {}
+        tenant_selection = TenantSelectionFlow(
             cli=self.cli,
             prompts=self.prompts,
             config=self._app_config,
             tenant_service=self._tenant_service,
-        ).run()
+        ).select_tenant()
 
-        workflows: dict[RUN_MENU, Workflow] = {}
+        print(tenant_selection)
+
+        self._tenant_cua_service.clean_up_audit(
+            tenant_selection.node, tenant_selection.tenant
+        )
 
         while True:
 

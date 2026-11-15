@@ -1,7 +1,7 @@
 from ..cli import CLI
 from ..enums import RUN_MENU
 
-from ..models.intra import Node
+from ..models.intra import Node, Tenant
 from questionary import Choice
 from ..__version__ import __version__
 
@@ -59,21 +59,20 @@ class Prompts:
 
         raise RuntimeError(f"Selected node was not found: {node_name}")
 
-    # def prompt_user_for_bus(self, full_bus: list[BusinessUnit]) -> list[BusinessUnit]:
-    #     bu_list = sorted(
-    #         [Choice(title=bu.name, value=bu.bu_id) for bu in full_bus],
-    #         key=lambda b: b.title,
-    #     )
-    #     user_selected_bus = []
-    #     while not user_selected_bus:
-    #         user_selected_bus = self.cli.checkbox("Select BUs:", bu_list)
+    def prompt_user_for_tenant_selection(self, node_tenants: list[Tenant]) -> Tenant:
+        tenant_list = sorted(
+            [
+                Choice(title=tenant.name, value=tenant.tenant_id)
+                for tenant in node_tenants
+            ],
+            key=lambda b: b.title,
+        )
+        tenant_selection = self.cli.select("Select Tenant:", tenant_list)
+        if tenant_selection is None:
+            raise KeyboardInterrupt
 
-    #         if user_selected_bus is None:
-    #             raise KeyboardInterrupt
+        for tenant in node_tenants:
+            if tenant.tenant_id == tenant_selection:
+                return tenant
 
-    #         if not user_selected_bus:
-    #             self.cli.print_warn(
-    #                 "Please <space> to select and then <enter>. If you want to exit, press ctrl+c."
-    #             )
-    #     selected_ids = set(user_selected_bus)
-    #     return [bu for bu in full_bus if bu.bu_id in selected_ids]
+        raise RuntimeError(f"Selected tenant was not found: {tenant_selection}")

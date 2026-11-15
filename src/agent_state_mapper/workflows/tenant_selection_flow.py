@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 
 from ..errors.network import NotAuthenticatedException
+from ..models.intra import TenantSelection
 
 
 class TenantSelectionFlow:
@@ -28,16 +29,27 @@ class TenantSelectionFlow:
         self._cli = cli
         self._tenant_service = tenant_service
 
-    def run(self) -> None:
+    def select_tenant(self) -> TenantSelection:
 
         while True:
             try:
                 node_list = self._config.node_list
                 print(node_list)
                 node = self._prompts.prompt_user_for_node_selection(node_list)
+                if not node:
+                    msg = "Node was not selected"
+                    self._cli.print_error(msg)
+                    raise RuntimeError(msg)
+
                 tenants = self._tenant_service.list_tenants(node)
 
-                return
+                if not tenants:
+                    msg = "Database did not return any tenants."
+                    self._cli.print_error(msg)
+                    raise RuntimeError(msg)
+
+                tenant = self._prompts.prompt_user_for_tenant_selection(tenants)
+                return TenantSelection(tenant=tenant, node=node)
 
             except NotAuthenticatedException:
                 self._cli.print_error(
