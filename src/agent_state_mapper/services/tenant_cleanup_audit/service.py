@@ -21,7 +21,7 @@ class TenantCleanUpAuditService:
         self.worker = worker
 
     def clean_up_audit(self, node: Node, tenant: Tenant) -> list[Tenant]:
-        self.db.connect(node, DB_NAME.TENANT)
+        self.db.connect(node, DB_NAME.MT)
         try:
             user_filters = self.worker.not_inuse_user_filters(self.db, tenant)
             task_filters = self.worker.not_inuse_task_filters(self.db, tenant)
