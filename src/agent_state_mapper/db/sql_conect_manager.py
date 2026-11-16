@@ -6,13 +6,16 @@ if TYPE_CHECKING:
     from ..models.intra import Node
     from ..enums import DB_NAME
     from mssql_python import Cursor
+    from ..cli import CLI
 
 from mssql_python import connect, Error as SQLERROR, OperationalError
 import sqlite3
+from ..errors.db import DBConnectionError
 
 
 class SQLConnectionManager:
-    def __init__(self):
+    def __init__(self, cli: CLI):
+        self._cli = cli
         self.connection = None
 
     def connect(self, node: Node, db_name: DB_NAME):
@@ -26,30 +29,33 @@ class SQLConnectionManager:
                 msg = f"{self.__class__.__name__} is already connected."
                 raise RuntimeError(msg)
             self.connection = connect(SQL_CONNECTION_STRING)
+        except OperationalError as e:
+            if "Client unable to establish connection" in str(e):
+                message = f"Could not connect to SQL Server for {node.name}. If you're off-network, check your VPN connection."
+                self._cli.print_error(message)
+                raise DBConnectionError(message) from e
 
+            else:
+                self._cli.print_error(
+                    f"{self.__class__.__name__}: Operational Error - {e}"
+                )
+                raise
         except Exception as e:
             print(e)
             raise
 
-    def execute_query(self, query, params=None):
+    def execute_query(self, query, params=None) -> Cursor:
         cursor = self.connection.cursor()
         try:
             if params:
                 cursor.execute(query, params)
             else:
                 cursor.execute(query)
-
-            return cursor
-        except SQLERROR as e:
-            print("SQL error ", e)
-            self.clean_up_cursor(cursor)
-            # TODO add logging
-            raise
         except Exception as e:
-            print("error ", e)
+            self._cli.print_error(f"{self.__class__.__name__}: Error {e}")
             self.clean_up_cursor(cursor)
-            # TODO add logging
             raise
+        return cursor
 
     def clean_up_cursor(self, cursor: Cursor) -> None:
         if cursor:
