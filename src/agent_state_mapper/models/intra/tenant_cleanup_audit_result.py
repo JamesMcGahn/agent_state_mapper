@@ -10,8 +10,8 @@ from .assignment_filter import AssignmentFilter
 @dataclass
 class TenantCleanupAuditResult:
     tenant: Tenant
-    user_filters: UserFilter
-    task_filters: TaskFilter
-    custom_attributes: CustomAttribute
-    paused_rules: PausedRule
-    assignment_filters: AssignmentFilter
+    user_filters: list[UserFilter]
+    task_filters: list[TaskFilter]
+    custom_attributes: list[CustomAttribute]
+    paused_rules: list[PausedRule]
+    assignment_filters: list[AssignmentFilter]

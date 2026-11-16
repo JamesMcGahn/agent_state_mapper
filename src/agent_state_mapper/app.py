@@ -21,6 +21,7 @@ from .services.tenant_cleanup_audit import (
     TenantCleanUpAuditService,
     TenantCleanupAuditQueryWorker,
     TenantCleanupAuditDAL,
+    TenantCleanupAuditSheetService,
 )
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
@@ -69,6 +70,8 @@ class App:
             db=self._sql_conn_manager,
             worker=self._tenant_cleanup_query_worker,
         )
+
+        self._tenant_cua_sheet_service = TenantCleanupAuditSheetService(cli=self.cli)
 
         self._tenant_selection = TenantSelectionFlow(
             cli=self.cli,
@@ -119,6 +122,7 @@ class App:
                 config=self._app_config,
                 tenant_audit_service=self._tenant_cua_service,
                 tenant_selection=self.user_tenant_selection,
+                reports=self._tenant_cua_sheet_service,
             )
         }
         try:
