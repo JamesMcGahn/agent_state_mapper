@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from ..services.tenant import TenantService
 
 
-from ..errors.network import NotAuthenticatedException
 from ..models.intra import TenantSelection
+from ..errors import TenantSelectionError
 
 
 class TenantSelectionFlow:
@@ -29,29 +29,21 @@ class TenantSelectionFlow:
         self._cli = cli
         self._tenant_service = tenant_service
 
-    def select_tenant(self) -> TenantSelection:
-
+    def run(self) -> TenantSelection:
         while True:
-            try:
-                node_list = self._config.node_list
-                print(node_list)
-                node = self._prompts.prompt_user_for_node_selection(node_list)
-                if not node:
-                    msg = "Node was not selected"
-                    self._cli.print_error(msg)
-                    raise RuntimeError(msg)
+            node_list = self._config.node_list
+            node = self._prompts.prompt_user_for_node_selection(node_list)
+            if not node:
+                msg = "Node was not selected"
+                self._cli.print_error(msg)
+                raise TenantSelectionError(msg)
 
-                tenants = self._tenant_service.list_tenants(node)
+            tenants = self._tenant_service.list_tenants(node)
 
-                if not tenants:
-                    msg = "Database did not return any tenants."
-                    self._cli.print_error(msg)
-                    raise RuntimeError(msg)
+            if not tenants:
+                msg = "Database did not return any tenants."
+                self._cli.print_error(msg)
+                raise TenantSelectionError(msg)
 
-                tenant = self._prompts.prompt_user_for_tenant_selection(tenants)
-                return TenantSelection(tenant=tenant, node=node)
-
-            except NotAuthenticatedException:
-                self._cli.print_error(
-                    "Authentication failed. Check your client ID, client secret, and region. Try again."
-                )
+            tenant = self._prompts.prompt_user_for_tenant_selection(tenants)
+            return TenantSelection(tenant=tenant, node=node)
