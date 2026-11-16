@@ -6,6 +6,7 @@ from .custom_attribute import CustomAttribute
 from .paused_rule import PausedRule
 from .assignment_filter import AssignmentFilter
 from .tenant_selection import TenantSelection
+from .tenant_cleanup_audit_result import TenantCleanupAuditResult
 
 __all__ = [
     "Node",
@@ -16,4 +17,5 @@ __all__ = [
     "PausedRule",
     "AssignmentFilter",
     "TenantSelection",
+    "TenantCleanupAuditResult",
 ]
