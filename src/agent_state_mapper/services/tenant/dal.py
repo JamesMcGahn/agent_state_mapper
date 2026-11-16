@@ -17,4 +17,4 @@ class TenantDAL:
         ORDER BY name
         """
         rows = db.fetch_all(TENANT_QUERY)
-        return [(str(row[0]), int(row[1])) for row in rows]
+        return [(str(row[0]), row[1]) for row in rows]

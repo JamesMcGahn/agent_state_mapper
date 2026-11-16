@@ -52,9 +52,11 @@ class App:
         # self._client_creds: ClientCredentials | None = None
         self._sql_conn_manager = SQLConnectionManager(self.cli)
         self._tenant_dal = TenantDAL()
-        self._tenant_query_worker = TenantQueryWorker(dal=self._tenant_dal)
+        self._tenant_query_worker = TenantQueryWorker(
+            cli=self.cli, dal=self._tenant_dal
+        )
         self._tenant_service = TenantService(
-            db=self._sql_conn_manager, worker=self._tenant_query_worker
+            cli=self.cli, db=self._sql_conn_manager, worker=self._tenant_query_worker
         )
 
         self._tenant_cleanup_dal = TenantCleanupAuditDAL()
