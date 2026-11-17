@@ -11,6 +11,8 @@ from .user_ide_version import UserIDEVersion
 from .tenant_ide_audit_result import TenantIDEAuditResult
 from .provider import Provider
 from .provider_result import ProviderResult
+from .state import State
+from .state_result import StateResult
 
 __all__ = [
     "Node",
@@ -26,4 +28,6 @@ __all__ = [
     "TenantIDEAuditResult",
     "Provider",
     "ProviderResult",
+    "State",
+    "StateResult",
 ]

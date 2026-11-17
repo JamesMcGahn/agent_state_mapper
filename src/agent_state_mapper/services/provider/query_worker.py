@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from ...cli import CLI
     from ...models.intra import TenantSelection
 
-from ...models.intra import Provider
+from ...models.intra import Provider, State
 from ...enums import PROVIDER_CATEGORY
 
 
@@ -59,3 +59,40 @@ class ProviderQueryWorker:
         )
 
         return intra_call_provider
+
+    def fetch_intra_call_provider_state_config(
+        self,
+        db: SQLConnectionManager,
+        tenant_selection: TenantSelection,
+        intra_call_provider: Provider,
+    ) -> list[State]:
+        tenant = tenant_selection.tenant
+        row = self.dal.fetch_intra_call_state_config(
+            db, tenant.tenant_id, intra_call_provider.guid
+        )
+        if not row:
+            return []
+
+        state_mappings = row
+
+        return self._parse_state_mappings(state_mappings)
+
+    def _parse_state_mappings(self, state_mappings: str) -> list[tuple[str, State]]:
+        mappings = []
+
+        for entry in state_mappings.split("|"):
+            if not entry:
+                continue
+
+            _, acd_state, original_mapping = entry.split(":", 2)
+            state, _, aux = acd_state.partition(".")
+
+            mappings.append(
+                State(
+                    state=state,
+                    aux=aux,
+                    original_mapping=original_mapping,
+                )
+            )
+
+        return mappings

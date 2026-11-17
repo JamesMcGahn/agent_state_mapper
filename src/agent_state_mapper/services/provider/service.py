@@ -7,8 +7,9 @@ if TYPE_CHECKING:
     from ...models.intra import TenantSelection
     from .query_worker import ProviderQueryWorker
     from ...cli import CLI
+    from ...models.intra import Provider
 
-from ...models.intra import ProviderResult
+from ...models.intra import ProviderResult, StateResult
 from ...enums.db_name import DB_NAME
 
 
@@ -40,5 +41,30 @@ class ProviderService:
             return ProviderResult(
                 acd_providers=acd_providers, intra_call_provider=intra_call_provider
             )
+        finally:
+            self.db.disconnect()
+
+    def fetch_intra_call_states(
+        self,
+        tenant_selection: TenantSelection,
+        intra_call_provider: Provider,
+    ) -> StateResult:
+        tenant = tenant_selection.tenant
+        node = tenant_selection.node
+        self.db.connect(node, DB_NAME.MT)
+        try:
+
+            self.cli.print_status(
+                f"Querying {tenant.name} for IntraCall Provider Mapped States. "
+            )
+            mapped_states = self.worker.fetch_intra_call_provider_state_config(
+                self.db, tenant_selection, intra_call_provider
+            )
+
+            self.cli.print_status(
+                f"Receieved {len(mapped_states)} States from IntraCall Provider."
+            )
+
+            return StateResult(provider=intra_call_provider, states=mapped_states)
         finally:
             self.db.disconnect()

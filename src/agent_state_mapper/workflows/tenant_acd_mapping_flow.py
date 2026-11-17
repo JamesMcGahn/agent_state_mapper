@@ -39,3 +39,14 @@ class TenantACDMappingFlow:
             tenant_selection=self._tenant_selection
         )
         print(call_providers)
+
+        if call_providers.intra_call_provider is not None:
+            intra_call_mappings = self._provider_service.fetch_intra_call_states(
+                tenant_selection=self._tenant_selection,
+                intra_call_provider=call_providers.intra_call_provider,
+            )
+            print(intra_call_mappings)
+        else:
+            self._cli.print_info(
+                "Skipping IntraCall Mappings as couldnot find IntraCall Provider."
+            )

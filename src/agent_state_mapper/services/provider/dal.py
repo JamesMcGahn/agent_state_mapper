@@ -61,3 +61,29 @@ class ProviderDAL:
         if row is not None:
             return (str(row[0]), str(row[1]), str(row[2]), str(row[3]))
         return None
+
+    def fetch_intra_call_state_config(
+        self, db: SQLConnectionManager, tenant_id: int, intra_call_id: str
+    ) -> None | str:
+
+        QUERY = """
+        DECLARE @tenant_id INT = ?;
+
+        SELECT
+            string_value as 'state_mappings'
+        FROM PROVIDER_INSTANCE_CONFIG_VALUE
+        WHERE
+            provider_instance_guid = ?
+            AND tenant_id = @tenant_id
+            AND string_value is not NULL
+        """
+        row = db.fetch_one(
+            QUERY,
+            (
+                tenant_id,
+                intra_call_id,
+            ),
+        )
+        if row is not None:
+            return str(row[0])
+        return None
