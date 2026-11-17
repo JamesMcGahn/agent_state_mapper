@@ -18,6 +18,7 @@ from .workflows import (
     TenantSelectionFlow,
     TenantCleanUpAuditFlow,
     TenantIDEAuditFlow,
+    TenantACDMappingFlow,
 )
 from .prompts import Prompts
 from .errors.network import NetworkResponseException, RetryableNetworkException
@@ -34,6 +35,7 @@ from .services.ide_audit import (
     TenantIDEAuditDAL,
     TenantIDEAuditSheetService,
 )
+from .services.provider import ProviderService, ProviderQueryWorker, ProviderDAL
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
 from .errors import TenantSelectionError
@@ -62,7 +64,11 @@ class App:
         self._gen_token: AccessToken | None = None
         # self._region: Region | None = None
         # self._client_creds: ClientCredentials | None = None
+        self._user_tenant_selection: TenantSelection | None = None
+
         self._sql_conn_manager = SQLConnectionManager(self.cli)
+        # -----SERVICES-----
+        # -----TENANT-------
         self._tenant_dal = TenantDAL()
         self._tenant_query_worker = TenantQueryWorker(
             cli=self.cli, dal=self._tenant_dal
@@ -70,27 +76,26 @@ class App:
         self._tenant_service = TenantService(
             cli=self.cli, db=self._sql_conn_manager, worker=self._tenant_query_worker
         )
-
+        # -----TENANT CLEANUP-------
         self._tenant_cleanup_dal = TenantCleanupAuditDAL()
         self._tenant_cleanup_query_worker = TenantCleanupAuditQueryWorker(
             cli=self.cli, dal=self._tenant_cleanup_dal
         )
-
         self._tenant_cua_service = TenantCleanUpAuditService(
             cli=self.cli,
             db=self._sql_conn_manager,
             worker=self._tenant_cleanup_query_worker,
         )
-
         self._tenant_cua_sheet_service = TenantCleanupAuditSheetService(cli=self.cli)
 
+        # -----TENANT SELECTION-------
         self._tenant_selection = TenantSelectionFlow(
             cli=self.cli,
             prompts=self.prompts,
             config=self._app_config,
             tenant_service=self._tenant_service,
         )
-
+        # -----TENANT IDE-------
         self._tenant_idea_dal = TenantIDEAuditDAL()
         self._tenant_idea_query_worker = TenantIDEAuditQueryWorker(
             cli=self.cli, dal=self._tenant_idea_dal
@@ -101,7 +106,13 @@ class App:
             worker=self._tenant_idea_query_worker,
         )
         self._tenant_idea_sheet_service = TenantIDEAuditSheetService(cli=self.cli)
-        self._user_tenant_selection: TenantSelection | None = None
+        # -----TENANT PROVIDERS-------
+        self._provider_dal = ProviderDAL()
+        self._provider_query = ProviderQueryWorker(cli=self.cli, dal=self._provider_dal)
+        self._provider_service = ProviderService(
+            cli=self.cli, db=self._sql_conn_manager, worker=self._provider_query
+        )
+        # -----STATE MAPPING-------
 
     @property
     def user_tenant_selection(self):
@@ -138,16 +149,21 @@ class App:
     def run_choice(self, choice: RUN_MENU):
         workflows: dict[RUN_MENU, Workflow] = {
             RUN_MENU.CLEANUP_QUERIES: TenantCleanUpAuditFlow(
-                self.cli,
+                cli=self.cli,
                 tenant_audit_service=self._tenant_cua_service,
                 tenant_selection=self.user_tenant_selection,
                 reports=self._tenant_cua_sheet_service,
             ),
             RUN_MENU.TENANT_IDE_VERSIONS: TenantIDEAuditFlow(
-                self.cli,
+                cli=self.cli,
                 tenant_ide_audit_service=self._tenant_idea_service,
                 tenant_selection=self.user_tenant_selection,
                 reports=self._tenant_idea_sheet_service,
+            ),
+            RUN_MENU.STATE_MAPPING: TenantACDMappingFlow(
+                cli=self.cli,
+                provider_service=self._provider_service,
+                tenant_selection=self.user_tenant_selection,
             ),
         }
         try:

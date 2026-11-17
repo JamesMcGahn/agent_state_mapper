@@ -9,6 +9,8 @@ from .tenant_selection import TenantSelection
 from .tenant_cleanup_audit_result import TenantCleanupAuditResult
 from .user_ide_version import UserIDEVersion
 from .tenant_ide_audit_result import TenantIDEAuditResult
+from .provider import Provider
+from .provider_result import ProviderResult
 
 __all__ = [
     "Node",
@@ -22,4 +24,6 @@ __all__ = [
     "TenantCleanupAuditResult",
     "UserIDEVersion",
     "TenantIDEAuditResult",
+    "Provider",
+    "ProviderResult",
 ]
