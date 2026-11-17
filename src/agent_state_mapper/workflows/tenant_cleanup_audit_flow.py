@@ -43,7 +43,8 @@ class TenantCleanUpAuditFlow:
             node=self._tenant_selection.node, tenant=self._tenant_selection.tenant
         )
         compare_output = self._reports.get_output_path(
-            file_name=f"{self._tenant_selection.tenant.name}_cleanup"
+            file_name=f"{self._tenant_selection.tenant.name}_cleanup",
+            tenant=self._tenant_selection.tenant,
         )
         self._reports.write_analyze(
             audit_result=audit_result, output_path=compare_output

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from agent_state_mapper.cli import CLI
+    from ...models.intra import Tenant
 
 
 from pathlib import Path
@@ -27,11 +28,21 @@ class BaseWrite:
         output_path: str | Path | None = None,
         file_name: str = "",
         file_ext: str = ".xlsx",
+        tenant: Tenant | None = None,
     ) -> Path:
         if output_path is not None:
             return Path(output_path)
         now = datetime.now()
         timestamp_str = now.strftime("%Y%m%d-%H%M%S-%f")
+
+        if tenant is not None:
+            return (
+                FileUtil.get_app_directory()
+                / "reports"
+                / f"{tenant.name}"
+                / f"report_{file_name}_{timestamp_str}{file_ext}"
+            )
+
         return (
             FileUtil.get_app_directory()
             / "reports"
