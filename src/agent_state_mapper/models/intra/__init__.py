@@ -7,6 +7,8 @@ from .paused_rule import PausedRule
 from .assignment_filter import AssignmentFilter
 from .tenant_selection import TenantSelection
 from .tenant_cleanup_audit_result import TenantCleanupAuditResult
+from .user_ide_version import UserIDEVersion
+from .tenant_ide_audit_result import TenantIDEAuditResult
 
 __all__ = [
     "Node",
@@ -18,4 +20,6 @@ __all__ = [
     "AssignmentFilter",
     "TenantSelection",
     "TenantCleanupAuditResult",
+    "UserIDEVersion",
+    "TenantIDEAuditResult",
 ]
