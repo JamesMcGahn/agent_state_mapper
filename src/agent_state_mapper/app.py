@@ -13,7 +13,12 @@ from requests import Session
 from .network import NetworkClient, NetworkThrottle
 from .enums import RUN_MENU
 import sys
-from .workflows import Workflow, TenantSelectionFlow, TenantCleanUpAuditFlow
+from .workflows import (
+    Workflow,
+    TenantSelectionFlow,
+    TenantCleanUpAuditFlow,
+    TenantIDEAuditFlow,
+)
 from .prompts import Prompts
 from .errors.network import NetworkResponseException, RetryableNetworkException
 from .services.tenant import TenantService, TenantQueryWorker, TenantDAL
@@ -22,6 +27,12 @@ from .services.tenant_cleanup_audit import (
     TenantCleanupAuditQueryWorker,
     TenantCleanupAuditDAL,
     TenantCleanupAuditSheetService,
+)
+from .services.ide_audit import (
+    TenantIDEAuditService,
+    TenantIDEAuditQueryWorker,
+    TenantIDEAuditDAL,
+    TenantIDEAuditSheetService,
 )
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
@@ -80,6 +91,16 @@ class App:
             tenant_service=self._tenant_service,
         )
 
+        self._tenant_idea_dal = TenantIDEAuditDAL()
+        self._tenant_idea_query_worker = TenantIDEAuditQueryWorker(
+            cli=self.cli, dal=self._tenant_idea_dal
+        )
+        self._tenant_idea_service = TenantIDEAuditService(
+            cli=self.cli,
+            db=self._sql_conn_manager,
+            worker=self._tenant_idea_query_worker,
+        )
+        self._tenant_idea_sheet_service = TenantIDEAuditSheetService(cli=self.cli)
         self._user_tenant_selection: TenantSelection | None = None
 
     @property
@@ -118,12 +139,16 @@ class App:
         workflows: dict[RUN_MENU, Workflow] = {
             RUN_MENU.CLEANUP_QUERIES: TenantCleanUpAuditFlow(
                 self.cli,
-                prompts=self.prompts,
-                config=self._app_config,
                 tenant_audit_service=self._tenant_cua_service,
                 tenant_selection=self.user_tenant_selection,
                 reports=self._tenant_cua_sheet_service,
-            )
+            ),
+            RUN_MENU.TENANT_IDE_VERSIONS: TenantIDEAuditFlow(
+                self.cli,
+                tenant_ide_audit_service=self._tenant_idea_service,
+                tenant_selection=self.user_tenant_selection,
+                reports=self._tenant_idea_sheet_service,
+            ),
         }
         try:
             workflows[choice].run()
