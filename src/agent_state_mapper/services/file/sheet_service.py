@@ -7,6 +7,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from ...models.file import SheetData
 from .base_write import BaseWrite
+from datetime import datetime
 
 
 class SheetService(BaseWrite):
@@ -44,3 +45,9 @@ class SheetService(BaseWrite):
         workbook.save(output_path)
         self._cli.print_status(f"Wrote file to: {output_path}")
         return output_path
+
+    def convert_time_to_str(self, time: datetime) -> str:
+        try:
+            return time.strftime("%Y-%m-%d %H:%M:%S")
+        except AttributeError:
+            return time

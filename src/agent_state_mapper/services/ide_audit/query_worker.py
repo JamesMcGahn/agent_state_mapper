@@ -31,6 +31,7 @@ class TenantIDEAuditQueryWorker:
             first_name,
             last_name,
             login,
+            event_date,
         ) in self.dal.fetch_user_ide_versions(db, tenant.tenant_id, node.tenant_db):
 
             try:
@@ -48,6 +49,7 @@ class TenantIDEAuditQueryWorker:
                     first_name=first_name,
                     last_name=last_name,
                     login=login,
+                    event_date=event_date,
                 )
             )
         return user_ide

@@ -18,7 +18,6 @@ from ..file.sheet_service import SheetService
 from ...models.file import SheetData
 
 from pathlib import Path
-from datetime import datetime
 
 
 class TenantCleanupAuditSheetService(SheetService):
@@ -139,9 +138,3 @@ class TenantCleanupAuditSheetService(SheetService):
             headers=headers,
             rows=row_data,
         )
-
-    def convert_time_to_str(self, time: datetime) -> str:
-        try:
-            return time.strftime("%Y-%m-%d %H:%M:%S")
-        except AttributeError:
-            return time

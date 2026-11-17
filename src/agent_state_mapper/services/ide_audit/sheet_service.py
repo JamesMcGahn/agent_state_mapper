@@ -36,6 +36,7 @@ class TenantIDEAuditSheetService(SheetService):
                     "First Name",
                     "Last Name",
                     "Tenant Name",
+                    "Event Date",
                 ],
                 audit_result.users_ide,
             ),
@@ -59,6 +60,7 @@ class TenantIDEAuditSheetService(SheetService):
                 record.first_name,
                 record.last_name,
                 record.tenant_name,
+                self.convert_time_to_str(record.event_date),
             ]
             for record in sorted(
                 records,

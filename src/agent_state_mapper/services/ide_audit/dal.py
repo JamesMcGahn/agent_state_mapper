@@ -30,28 +30,40 @@ class TenantIDEAuditDAL:
         DECLARE @tenant_id INT = ?;
         DECLARE @start_date DATETIME = DATEADD(DAY, -?, GETDATE());
 
-        SELECT DISTINCT
-            ueh.param_value4 AS ide_version,
-            ueh.ka_user_guid,
-            ueh.tenant_id,
+        WITH LatestLogins AS (
+            SELECT
+                ueh.param_value4 AS ide_version,
+                ueh.ka_user_guid,
+                ueh.tenant_id,
+                ueh.processed_date,
+                ROW_NUMBER() OVER (
+                    PARTITION BY ueh.ka_user_guid
+                    ORDER BY ueh.processed_date DESC
+                ) AS rn
+            FROM USER_EVENT_HIST ueh
+            WHERE
+                ueh.tenant_id = @tenant_id
+                AND ueh.processed_date >= @start_date
+                AND ueh.param_value5 = 'loggedin'
+                AND ueh.param_value4 IS NOT NULL
+                AND ueh.param_value4 <> '0.0.0.0'
+        )
+        SELECT
+            ll.ide_version,
+            ll.ka_user_guid,
+            ll.tenant_id,
             t.name AS tenant_name,
             ku.first_name,
             ku.last_name,
-            ku.login
-        FROM USER_EVENT_HIST ueh
+            ku.login,
+            ll.processed_date
+        FROM LatestLogins ll
         INNER JOIN {quoted_db}..TENANT t
-            ON t.tenant_id = ueh.tenant_id
+            ON t.tenant_id = ll.tenant_id
         INNER JOIN ka_user ku
-            ON ku.ka_user_guid = ueh.ka_user_guid
-        WHERE
-            ueh.tenant_id = @tenant_id
-            AND ueh.processed_date >= @start_date
-            AND ueh.param_value5 = 'loggedin'
-            AND ueh.param_value4 IS NOT NULL
-            AND ueh.param_value4 <> '0.0.0.0'
-        ORDER BY
-            ide_version,
-            ueh.ka_user_guid;
+            ON ku.ka_user_guid = ll.ka_user_guid
+        WHERE ll.rn = 1
+        ORDER BY ll.ide_version, ll.ka_user_guid;
         """
         rows = db.fetch_all(
             QUERY,
@@ -69,6 +81,7 @@ class TenantIDEAuditDAL:
                 str(row[4]),
                 str(row[5]),
                 str(row[6]),
+                row[7],
             )
             for row in rows
         ]
