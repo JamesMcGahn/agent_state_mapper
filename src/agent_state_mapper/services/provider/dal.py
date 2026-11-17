@@ -70,12 +70,15 @@ class ProviderDAL:
         DECLARE @tenant_id INT = ?;
 
         SELECT
-            string_value as 'state_mappings'
-        FROM PROVIDER_INSTANCE_CONFIG_VALUE
+            pcv.string_value
+        FROM PROVIDER_INSTANCE_CONFIG_VALUE pcv WITH (NOLOCK)
+        JOIN PROVIDER_CONFIG_PARAMETER pcp WITH (NOLOCK)
+            ON pcv.provider_config_parameter_guid =
+            pcp.provider_config_parameter_guid
         WHERE
-            provider_instance_guid = ?
-            AND tenant_id = @tenant_id
-            AND string_value is not NULL
+            pcv.provider_instance_guid =?
+            and pcp.name = 'id_intra_call_tenant_state_mapping_key_values'
+            and pcv.tenant_id = @tenant_id
         """
         row = db.fetch_one(
             QUERY,
