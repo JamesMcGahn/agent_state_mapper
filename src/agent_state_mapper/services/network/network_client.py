@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from requests import Session
-    from ..models.network.network_request import NetworkRequest
+    from ...models.network.network_request import NetworkRequest
 from requests import Response, RequestException
-from ..models.network.network_response import NetworkResponse
+from ...models.network.network_response import NetworkResponse
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from math import isfinite

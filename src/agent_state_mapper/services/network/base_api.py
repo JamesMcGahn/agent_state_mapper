@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..models.network.network_request import NetworkRequest
-    from ..models.network.network_response import NetworkResponse
+    from ...models.network.network_request import NetworkRequest
+    from ...models.network.network_response import NetworkResponse
 
 from .network_client import NetworkClient
 from .network_throttle import NetworkThrottle
-from ..errors.network import (
+from ...errors.network import (
     NetworkResponseException,
     RetryableNetworkException,
     NotAuthenticatedException,
@@ -26,7 +26,18 @@ class BaseApi:
         self._network_throttle = network_throttle
 
     def _execute(self, request: NetworkRequest) -> NetworkResponse:
-        return self._client.execute(request)
+        for attempt in range(request.retries + 1):
+            self._network_throttle.wait()
+            response = self._client.execute(request)
+
+            try:
+                self._handle_response(response)
+            except RetryableNetworkException:
+                if attempt == request.retries:
+                    raise
+                continue
+
+            return response
 
     def _handle_response(self, response: NetworkResponse):
         error_message = ""

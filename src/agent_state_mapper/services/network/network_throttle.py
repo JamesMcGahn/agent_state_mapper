@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-
+if TYPE_CHECKING:
+    from ...cli import CLI
 from time import monotonic, sleep
 
 
@@ -12,24 +13,23 @@ class NetworkThrottle:
     interval: time between requests in seconds
     """
 
-    def __init__(self, interval: float = 0.5):
+    def __init__(self, cli: CLI, interval: float = 0.5):
         super().__init__()
+        self._cli = cli
         self._base_interval = interval
         self._interval = interval
         self._last_call = 0.0
 
     def wait(self):
         elapsed = monotonic() - self._last_call
-
-        # self.logging(
-        #     f"Checking if wait delay is needed. Time elapsed: {elapsed:.3f}s",
-        #     "DEBUG",
-        # )
+        self._cli.print_info(
+            f"Checking if wait delay is needed. Time elapsed: {elapsed:.3f}s"
+        )
         if elapsed < self._interval:
             wait_time = self._interval - elapsed
-            # self.logging(
-            #     f"Throttling request for {wait_time:.3f}s, Last request received at {self._last_call}"
-            # )
+            self._cli.print_info(
+                f"Throttling request for {wait_time:.3f}s, Last request received at {self._last_call}"
+            )
             sleep(wait_time)
         self._last_call = monotonic()
 
@@ -39,16 +39,14 @@ class NetworkThrottle:
     def increase_wait_interval(self, amount: float = 0.5) -> None:
         self._interval += amount
 
-        # self.logging(
-        #     f"Throttle interval increased to {self._interval:.3f}s",
-        #     "WARNING",
-        # )
+        self._cli.print_info(
+            f"Throttle interval increased to {self._interval:.3f}s",
+        )
 
     def delay(self, amount: float) -> None:
-        # self.logging(
-        #     f"Server requested retry delay of {amount:.3f}s. Waiting...",
-        #     "WARNING",
-        # )
+        self._cli.print_info(
+            f"Server requested retry delay of {amount:.3f}s. Waiting...",
+        )
 
         sleep(amount)
 
