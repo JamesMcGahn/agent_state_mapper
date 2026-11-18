@@ -182,14 +182,16 @@ class App:
         }
         try:
             workflows[choice].run()
-        except RetryableNetworkException:
+        except RetryableNetworkException as error:
             self.cli.print_error(
                 "Network is temporarily unavailable or rate limiting requests. "
                 "Wait before trying again."
             )
+            self.cli.print_error(f"{error}")
         except NetworkResponseException as error:
             if error.status == 0:
                 self.cli.print_error("Cannot reach network. Check your connection.")
+                self.cli.print_error(f"{error}")
                 self.cli.print_warn("ELK TASKS MUST BE RAN ON AWS RDP!")
             elif error.status == 403:
                 self.cli.print_error("Access denied. Check the client's permissions.")
@@ -208,12 +210,14 @@ class App:
                 "Please select a tenant before running one of the actions."
             )
             self.cli.print_warn("Remember to run the application on the VPN!")
-        except DBConnectionError:
+        except DBConnectionError as error:
             self.cli.print_warn("Remember to run the application on the VPN!")
-        except NotAuthenticatedException:
+            self.cli.print_error(f"{error}")
+        except NotAuthenticatedException as error:
             self.cli.print_error(
                 "Please check the ELK API key. Make sure to Run from RDP Server and not your local Machine."
             )
+            self.cli.print_error(f"{error}")
 
     def start_up(self):
         self._app_config.load_config()

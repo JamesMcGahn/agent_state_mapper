@@ -95,6 +95,7 @@ class ELKAPI(BaseApi):
                 url=url,
                 retries=1,
                 json=request_body,
+                timeout=60.0,
             )
             response = self._execute(request)
 

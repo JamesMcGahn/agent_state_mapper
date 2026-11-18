@@ -48,14 +48,19 @@ class BaseApi:
                 if "description" in response.data:
                     description = response.data["description"]
                     error_message = f"{payload_error}: {description}"
-
+                if (
+                    "type" in response.data["error"]
+                    and "reason" in response.data["error"]
+                ):
+                    error_type = response.data["error"]["type"]
+                    reason = response.data["error"]["reason"]
+                    error_message = f"{error_type} - {reason}"
             if "message" in response.data:
                 error_message = response.data["message"]
-
         match response.status:
             case 0:
                 raise NetworkResponseException(
-                    error_message or None, response.status, response.data
+                    response.message, response.status, response.data
                 )
             case 400:
                 if "invalid_client" in error_message:
