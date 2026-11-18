@@ -53,11 +53,14 @@ class TenantACDMappingFlow:
         self._get_distinct_states_call_providers(call_providers.acd_providers)
 
     def _get_distinct_states_call_providers(self, call_providers: list[Provider]):
-        for provider in call_providers:
+        for index, provider in enumerate(call_providers, start=1):
+            self._cli.print_status(
+                f"Provider {index}/{len(call_providers)}: {provider.name}"
+            )
             states = self._elk_service.distinct_acd_states(
                 tenant_selection=self._tenant_selection,
                 provider_instance=provider,
                 day_range=7,
             )
-
+            print("states found \n")
             print(states)
