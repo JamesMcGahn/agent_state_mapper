@@ -9,7 +9,7 @@ from PyInstaller.utils.hooks import collect_all
 
 # Collect mssql-python dependencies
 datas = [
-    ('src/agent_state_mapper/default_config.toml', 'agent_state_mapper'),
+    ('src/agent_state_mapper/default_configs','agent_state_mapper/default_configs'),
     ('LICENSE', '.'),
 ]
 binaries = []
