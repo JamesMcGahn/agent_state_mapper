@@ -10,7 +10,7 @@ from .cli import CLI
 
 
 from requests import Session
-from .network import NetworkClient, NetworkThrottle
+from .services.network import NetworkClient, NetworkThrottle
 from .enums import RUN_MENU
 import sys
 from .workflows import (
@@ -21,7 +21,11 @@ from .workflows import (
     TenantACDMappingFlow,
 )
 from .prompts import Prompts
-from .errors.network import NetworkResponseException, RetryableNetworkException
+from .errors.network import (
+    NetworkResponseException,
+    RetryableNetworkException,
+    NotAuthenticatedException,
+)
 from .services.tenant import TenantService, TenantQueryWorker, TenantDAL
 from .services.tenant_cleanup_audit import (
     TenantCleanUpAuditService,
@@ -35,6 +39,7 @@ from .services.ide_audit import (
     TenantIDEAuditDAL,
     TenantIDEAuditSheetService,
 )
+from .services.elk import ELKAPI, ELKService
 from .services.provider import ProviderService, ProviderQueryWorker, ProviderDAL
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
@@ -51,7 +56,7 @@ class App:
         self._app_config = AppConfig(self.cli)
         self._config = None
         self._http_session = Session()
-        self._network_throttle = NetworkThrottle()
+        self._network_throttle = NetworkThrottle(self.cli)
         self._network_client = NetworkClient(self._http_session)
         # self._gen_api = GenesysAPI(
         #     self._network_client, self._network_throttle, self.cli
@@ -112,6 +117,14 @@ class App:
         self._provider_service = ProviderService(
             cli=self.cli, db=self._sql_conn_manager, worker=self._provider_query
         )
+        # -----ELK-------
+        self._elk_api = ELKAPI(
+            cli=self.cli,
+            network_client=self._network_client,
+            network_throttle=self._network_throttle,
+        )
+        self._elk_service = ELKService(cli=self.cli, elk_api=self._elk_api)
+
         # -----STATE MAPPING-------
 
     @property
@@ -164,22 +177,25 @@ class App:
                 cli=self.cli,
                 provider_service=self._provider_service,
                 tenant_selection=self.user_tenant_selection,
+                elk_service=self._elk_service,
             ),
         }
         try:
             workflows[choice].run()
         except RetryableNetworkException:
             self.cli.print_error(
-                "Genesys is temporarily unavailable or rate limiting requests. "
+                "Network is temporarily unavailable or rate limiting requests. "
                 "Wait before trying again."
             )
         except NetworkResponseException as error:
             if error.status == 0:
-                self.cli.print_error("Cannot reach Genesys. Check your connection.")
+                self.cli.print_error("Cannot reach network. Check your connection.")
+                self.cli.print_warn("ELK TASKS MUST BE RAN ON AWS RDP!")
             elif error.status == 403:
                 self.cli.print_error("Access denied. Check the client's permissions.")
             else:
-                self.cli.print_error(f"Genesys request failed: {error}")
+                self.cli.print_error(f"Network request failed: {error}")
+                self.cli.print_warn("ELK TASKS MUST BE RAN ON AWS RDP!")
         except PermissionError:
             self.cli.print_error(
                 "Cannot write the report. Close it in Excel "
@@ -194,8 +210,13 @@ class App:
             self.cli.print_warn("Remember to run the application on the VPN!")
         except DBConnectionError:
             self.cli.print_warn("Remember to run the application on the VPN!")
+        except NotAuthenticatedException:
+            self.cli.print_error(
+                "Please check the ELK API key. Make sure to Run from RDP Server and not your local Machine."
+            )
 
     def start_up(self):
         self._app_config.load_config()
         self.prompts.welcome_message()
+        self.cli.print_warn("STATE MAPPING MUST BE RAN ON AWS RDP!")
         self.prompt_user_for_tenant()

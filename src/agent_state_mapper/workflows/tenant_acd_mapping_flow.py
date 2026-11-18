@@ -4,11 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..cli import CLI
-
-    # from ..services.tenant_cleanup_audit import (
-    #     TenantCleanUpAuditService,
-    #     TenantCleanupAuditSheetService,
-    # )
+    from ..models.intra import Provider
 
 
 from ..models.intra import TenantSelection
@@ -16,6 +12,7 @@ from ..errors import TenantSelectionError
 
 
 from ..services.provider import ProviderService
+from ..services.elk import ELKService
 
 
 class TenantACDMappingFlow:
@@ -25,11 +22,13 @@ class TenantACDMappingFlow:
         cli: CLI,
         provider_service: ProviderService,
         tenant_selection: TenantSelection,
+        elk_service: ELKService,
     ):
 
         self._cli = cli
         self._provider_service = provider_service
         self._tenant_selection = tenant_selection
+        self._elk_service = elk_service
 
     def run(self) -> None:
         if self._tenant_selection is None:
@@ -50,3 +49,15 @@ class TenantACDMappingFlow:
             self._cli.print_info(
                 "Skipping IntraCall Mappings as couldnot find IntraCall Provider."
             )
+
+        self._get_distinct_states_call_providers(call_providers.acd_providers)
+
+    def _get_distinct_states_call_providers(self, call_providers: list[Provider]):
+        for provider in call_providers:
+            states = self._elk_service.distinct_acd_states(
+                tenant_selection=self._tenant_selection,
+                provider_instance=provider,
+                day_range=7,
+            )
+
+            print(states)
