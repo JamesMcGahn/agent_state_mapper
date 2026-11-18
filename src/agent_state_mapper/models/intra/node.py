@@ -10,4 +10,4 @@ class Node:
     db_user_name: str = field(repr=False)
     db_password: str = field(repr=False)
     elk_endpoint: str
-    api_key: str
+    elk_api_key: str
