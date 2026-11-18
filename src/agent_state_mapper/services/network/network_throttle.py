@@ -22,14 +22,8 @@ class NetworkThrottle:
 
     def wait(self):
         elapsed = monotonic() - self._last_call
-        self._cli.print_info(
-            f"Checking if wait delay is needed. Time elapsed: {elapsed:.3f}s"
-        )
         if elapsed < self._interval:
             wait_time = self._interval - elapsed
-            self._cli.print_info(
-                f"Throttling request for {wait_time:.3f}s, Last request received at {self._last_call}"
-            )
             sleep(wait_time)
         self._last_call = monotonic()
 
