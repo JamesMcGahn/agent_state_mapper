@@ -12,16 +12,24 @@ unsigned releases and do not perform macOS notarization.
 
 ### Windows (PowerShell)
 
+clean builds
+
 ```powershell
-uv run --group dev pyinstaller --noconfirm --clean --onefile --console `
-  --name V11_Tools `
-  --icon "assets/app.ico" `
-  --paths src `
-  --add-data "src/agent_state_mapper/default_config.toml:agent_state_mapper" `
-  --add-data "LICENSE:." `
+uv run --group dev pyinstaller --noconfirm --clean `
   --distpath dist/windows `
   --workpath build/windows `
-  launcher.py
+  V11_Tools.spec
+
+if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed" }
+```
+
+normal builds
+
+```powershell
+uv run --group dev pyinstaller --noconfirm `
+  --distpath dist/windows `
+  --workpath build/windows `
+  V11_Tools.spec
 
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed" }
 ```
