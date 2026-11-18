@@ -49,7 +49,7 @@ class ELKAPI(BaseApi):
 
         states_in_range: list[StatesResult] = []
         self._cli.print_status(
-            f"Requesting State Data from ELK for {provider_instance.name} - {start_time_utc:%Y-%m-%d %H:%M}-{end_time_utc:%H:%M}"
+            f"Requesting State Data from ELK for {provider_instance.name} - Start:{start_time_utc:%Y-%m-%d %H:%M} End:{end_time_utc:%Y-%m-%d %H:%M}"
         )
         windows = list(self.hour_windows(start_time_utc, end_time_utc))
         total = len(windows)
@@ -121,7 +121,7 @@ class ELKAPI(BaseApi):
         finally:
             self._cli.end_progress()
         self._cli.print_status(
-            f"Finished getting State Data from ELK for {provider_instance.name} - {start_time_utc:%Y-%m-%d %H:%M}-{end_time_utc:%H:%M}"
+            f"Finished getting State Data from ELK for {provider_instance.name} - Start:{start_time_utc:%Y-%m-%d %H:%M} End:{end_time_utc:%Y-%m-%d %H:%M}"
         )
         return states_in_range
 
