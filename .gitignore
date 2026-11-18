@@ -229,3 +229,5 @@ acd_state.py
 
 # config
 default_config.toml
+
+!V11_Tools.spec
