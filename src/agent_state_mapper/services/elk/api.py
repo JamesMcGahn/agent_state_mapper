@@ -95,29 +95,29 @@ class ELKAPI(BaseApi):
                     },
                 }
 
-            request = NetworkRequest(
-                method=HTTPMETHOD.POST,
-                headers=request_headers,
-                url=url,
-                retries=1,
-                json=request_body,
-                timeout=60.0,
-            )
-            response = self._execute(request)
-
-            states_for_window = self._parse_state_aggregate(response.data)
-            states_in_range.append(
-                StatesResult(
-                    start=window_start, end=window_end, states=states_for_window
+                request = NetworkRequest(
+                    method=HTTPMETHOD.POST,
+                    headers=request_headers,
+                    url=url,
+                    retries=1,
+                    json=request_body,
+                    timeout=60.0,
                 )
-            )
-            elapsed = int(monotonic() - started)
-            minutes, seconds = divmod(elapsed, 60)
-            completed = len(states_in_range)
-            self._cli.print_progress(
-                f"ELK windows: {completed}/{total} ({completed / total:.0%})"
-                f" | Elapsed: {minutes:02d}:{seconds:02d}"
-            )
+                response = self._execute(request)
+
+                states_for_window = self._parse_state_aggregate(response.data)
+                states_in_range.append(
+                    StatesResult(
+                        start=window_start, end=window_end, states=states_for_window
+                    )
+                )
+                elapsed = int(monotonic() - started)
+                minutes, seconds = divmod(elapsed, 60)
+                completed = len(states_in_range)
+                self._cli.print_progress(
+                    f"ELK windows: {completed}/{total} ({completed / total:.0%})"
+                    f" | Elapsed: {minutes:02d}:{seconds:02d}"
+                )
         finally:
             self._cli.end_progress()
         self._cli.print_status(
