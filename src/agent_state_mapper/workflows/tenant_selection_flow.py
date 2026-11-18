@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from ..cli import CLI
 
     from ..prompts import Prompts
-    from ..app_config import AppConfig
+    from ..services.config import ConfigService
     from ..services.tenant import TenantService
 
 
@@ -20,18 +20,19 @@ class TenantSelectionFlow:
         self,
         cli: CLI,
         prompts: Prompts,
-        config: AppConfig,
+        config_service: ConfigService,
         tenant_service: TenantService,
     ):
 
         self._prompts = prompts
-        self._config = config
+        self._config_service = config_service
         self._cli = cli
         self._tenant_service = tenant_service
 
     def run(self) -> TenantSelection:
         while True:
-            node_list = self._config.node_list
+            app_config = self._config_service.get_app_config()
+            node_list = app_config.nodes
             node = self._prompts.prompt_user_for_node_selection(node_list)
             if not node:
                 msg = "Node was not selected"

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .models.network import AccessToken
 
-from .app_config import AppConfig
+from .services.config import AppConfig, ConfigService
 from .cli import CLI
 
 
@@ -54,6 +54,7 @@ class App:
     ):
         self.cli = CLI()
         self._app_config = AppConfig(self.cli)
+        self._config_service = ConfigService(self.cli, app_config=self._app_config)
         self._config = None
         self._http_session = Session()
         self._network_throttle = NetworkThrottle(self.cli)
@@ -97,7 +98,7 @@ class App:
         self._tenant_selection = TenantSelectionFlow(
             cli=self.cli,
             prompts=self.prompts,
-            config=self._app_config,
+            config_service=self._config_service,
             tenant_service=self._tenant_service,
         )
         # -----TENANT IDE-------
@@ -220,7 +221,7 @@ class App:
             self.cli.print_error(f"{error}")
 
     def start_up(self):
-        self._app_config.load_config()
+        self._config_service.load_application_config()
         self.prompts.welcome_message()
         self.cli.print_warn("STATE MAPPING MUST BE RAN ON AWS RDP!")
         self.prompt_user_for_tenant()
