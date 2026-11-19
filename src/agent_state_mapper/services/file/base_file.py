@@ -14,7 +14,7 @@ from .util import FileUtil
 from datetime import datetime
 
 
-class BaseWrite:
+class BaseFile:
     def __init__(self, cli: CLI):
         self._cli = cli
 

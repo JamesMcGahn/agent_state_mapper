@@ -6,11 +6,11 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from ...models.file import SheetData
-from .base_write import BaseWrite
+from .base_file import BaseFile
 from datetime import datetime
 
 
-class SheetService(BaseWrite):
+class SheetService(BaseFile):
 
     def __init__(self, cli: CLI):
         super().__init__(cli)

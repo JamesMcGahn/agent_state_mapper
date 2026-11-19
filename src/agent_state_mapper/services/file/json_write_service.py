@@ -9,10 +9,10 @@ if TYPE_CHECKING:
 from pathlib import Path
 import json
 
-from .base_write import BaseWrite
+from .base_file import BaseFile
 
 
-class JSONFileService(BaseWrite):
+class JSONFileService(BaseFile):
 
     def __init__(self, cli: CLI):
         super().__init__(cli)
