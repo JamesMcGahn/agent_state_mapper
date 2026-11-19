@@ -45,6 +45,7 @@ from .db import SQLConnectionManager
 from .models.intra import TenantSelection
 from .errors import TenantSelectionError
 from .errors.db import DBConnectionError
+from .services.file import TomlFileService
 
 
 class App:
@@ -53,12 +54,18 @@ class App:
         self,
     ):
         self.cli = CLI()
+        self._toml_file_service = TomlFileService(self.cli)
         self._app_config = AppConfig(self.cli)
-        self._config_service = ConfigService(self.cli, app_config=self._app_config)
-        self._config = None
+        self._config_service = ConfigService(
+            self.cli,
+            toml_file_service=self._toml_file_service,
+            app_config=self._app_config,
+        )
+
         self._http_session = Session()
         self._network_throttle = NetworkThrottle(self.cli)
         self._network_client = NetworkClient(self._http_session)
+
         # self._gen_api = GenesysAPI(
         #     self._network_client, self._network_throttle, self.cli
         # )

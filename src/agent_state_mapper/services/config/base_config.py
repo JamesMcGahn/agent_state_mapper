@@ -8,8 +8,6 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import sys
-import tomllib
-from ...errors import ConfigError
 
 
 class BaseConfig:
@@ -46,17 +44,12 @@ class BaseConfig:
 
         return path
 
-    def load_config(self, config_path: Path) -> None:
-        if not config_path.is_file():
-            msg = f"Config file does NOT exist. {config_path}"
-            self.cli.print_error(msg)
-            raise ConfigError(msg)
-
-        with config_path.open("rb") as file:
-            config = tomllib.load(file)
-            self.load_config_helper(config)
-
-    def load_config_helper(self, config: dict[str, Any]) -> None:
+    def parse_config(self, config: dict[str, Any]):
         raise NotImplementedError(
-            f"{__class__.__name__}: load_config_helper has not been implemented"
+            f"{__class__.__name__}: parse_config has not been implemented"
+        )
+
+    def apply_config(self, config: dict[str, Any]):
+        raise NotImplementedError(
+            f"{__class__.__name__}: apply_config has not been implemented"
         )

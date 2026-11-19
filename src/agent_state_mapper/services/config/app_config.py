@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 from ...cli import CLI
 from ...errors import ConfigError
 from ...models.intra import Node
+from ...models.config import AppSettings
 from dataclasses import fields
 from .base_config import BaseConfig
 
@@ -16,12 +17,17 @@ class AppConfig(BaseConfig):
     def __init__(self, cli: CLI):
         super().__init__(cli)
         self._node_list = []
+        self._app_config = AppSettings()
 
     @property
-    def node_list(self) -> list[Node]:
-        return self._node_list
+    def app_settings(self) -> AppSettings:
+        return self._app_config
 
-    def load_config_helper(self, config: dict[str, Any]) -> None:
+    def apply_config(self, config):
+        self._node_list = self.parse_config(config)
+        self._app_config = AppSettings(nodes=self._node_list)
+
+    def parse_config(self, config: dict[str, Any]) -> list[Node]:
         nodes: dict[str, str] = config.get("nodes")
         if not nodes or nodes is None:
             msg = "Config file doesn't have any nodes. Make sure to write the nodes like [nodes.Node3]"
@@ -67,4 +73,4 @@ class AppConfig(BaseConfig):
             msg = "Failed to load config file. No Nodes exist."
             raise ConfigError(msg)
         self.cli.print_status("Config succesfully loaded.")
-        self._node_list = nodes_list
+        return nodes_list
