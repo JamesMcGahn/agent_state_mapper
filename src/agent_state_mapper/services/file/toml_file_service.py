@@ -10,10 +10,10 @@ from pathlib import Path
 import toml
 import tomllib
 
-from .base_write import BaseWrite
+from .base_file import BaseFile
 
 
-class TomlFileService(BaseWrite):
+class TomlFileService(BaseFile):
 
     def __init__(self, cli: CLI):
         super().__init__(cli)
