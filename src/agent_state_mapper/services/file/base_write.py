@@ -23,6 +23,11 @@ class BaseWrite:
             f"{self.__class__.__name__}: has not implemented write method"
         )
 
+    def read(self):
+        raise NotImplementedError(
+            f"{self.__class__.__name__}: has not implemented write method"
+        )
+
     def get_output_path(
         self,
         output_path: str | Path | None = None,
