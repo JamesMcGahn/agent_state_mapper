@@ -1,0 +1,16 @@
+[provider]
+name = "Example"
+
+aliases = ["example_acd"]
+
+base_states = ["Ready", "Not Ready", "Talking", "Work", "Logged Out"]
+
+[states]
+"Ready" = "Available"
+"Talking" = "On Call"
+"Work" = "ACW"
+
+[[state_aux_mappings]]
+state = "Not Ready"
+aux = "7"
+target = "Meeting"

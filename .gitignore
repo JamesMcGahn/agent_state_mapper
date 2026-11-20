@@ -228,7 +228,13 @@ __marimo__/
 acd_state.py
 
 # config
-default_config.toml
-app_config.toml
+# Ignore default config files, but allow directories and examples
+/src/agent_state_mapper/default_configs/**
+!/src/agent_state_mapper/default_configs/**/
+!/src/agent_state_mapper/default_configs/**/*_example.toml
+
+# Ignore local runtime configs
+/config/
+
 
 !V11_Tools.spec

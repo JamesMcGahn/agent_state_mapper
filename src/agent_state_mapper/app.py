@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .models.network import AccessToken
 
-from .services.config import AppConfig, ConfigService
+from .services.config import AppConfig, ConfigService, StateConfig
 from .cli import CLI
 
 
@@ -56,10 +56,12 @@ class App:
         self.cli = CLI()
         self._toml_file_service = TomlFileService(self.cli)
         self._app_config = AppConfig(self.cli)
+        self._state_config = StateConfig(self.cli)
         self._config_service = ConfigService(
             self.cli,
             toml_file_service=self._toml_file_service,
             app_config=self._app_config,
+            state_config=self._state_config,
         )
 
         self._http_session = Session()
@@ -229,6 +231,7 @@ class App:
 
     def start_up(self):
         self._config_service.load_application_config()
+        self._config_service.load_state_configs()
         self.prompts.welcome_message()
         self.cli.print_warn("STATE MAPPING MUST BE RAN ON AWS RDP!")
         self.prompt_user_for_tenant()
