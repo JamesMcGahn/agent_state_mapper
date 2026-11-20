@@ -30,8 +30,8 @@ class AppConfig(BaseConfig):
     def parse_config(self, config: dict[str, Any]) -> list[Node]:
         nodes: dict[str, str] = config.get("nodes")
         if not nodes or nodes is None:
-            msg = "Config file doesn't have any nodes. Make sure to write the nodes like [nodes.Node3]"
-            self.cli.print_error(msg)
+            msg = "App config file doesn't have any nodes. Make sure to write the nodes like [nodes.Node3]"
+            self._cli.print_error(msg)
             raise ConfigError(msg)
 
         nodes_list = []
@@ -40,19 +40,19 @@ class AppConfig(BaseConfig):
 
         for node_name, node_settings in nodes.items():
             if not isinstance(node_settings, dict):
-                msg = "Config file is formatted improperly."
+                msg = "App config file is formatted improperly."
                 raise ConfigError(msg)
 
             missing = required - node_settings.keys()
             unknown = node_settings.keys() - required
             if missing:
-                msg = f"{node_name} is missing the {", ".join(missing)} in the config file. Skipping Node..."
-                self.cli.print_error(msg)
+                msg = f"{node_name} is missing the {", ".join(missing)} in the app config file. Skipping Node..."
+                self._cli.print_error(msg)
                 continue
 
             if unknown:
-                msg = f"{node_name} is has unexpected key(s) {", ".join(unknown)} in the config file. Skipping Node..."
-                self.cli.print_error(msg)
+                msg = f"{node_name} is has unexpected key(s) {", ".join(unknown)} in the app config file. Skipping Node..."
+                self._cli.print_error(msg)
                 continue
 
             blank_fields = [
@@ -62,7 +62,7 @@ class AppConfig(BaseConfig):
             ]
 
             if blank_fields:
-                self.cli.print_error(
+                self._cli.print_error(
                     f"{node_name} has blank fields: {', '.join(blank_fields)}"
                 )
                 continue
@@ -70,7 +70,7 @@ class AppConfig(BaseConfig):
             nodes_list.append(Node(name=node_name, **node_settings))
 
         if not nodes_list:
-            msg = "Failed to load config file. No Nodes exist."
+            msg = "Failed to load app config file. No Nodes exist."
             raise ConfigError(msg)
-        self.cli.print_status("Config succesfully loaded.")
+        self._cli.print_status("App config succesfully loaded.")
         return nodes_list

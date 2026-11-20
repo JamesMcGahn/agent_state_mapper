@@ -12,11 +12,22 @@ import sys
 
 class BaseConfig:
     def __init__(self, cli: CLI):
-        self.cli = cli
+        self._cli = cli
 
     def get_default_config(self, folder: str, file_name: str) -> Path:
         package_root = Path(__file__).resolve().parents[2]
         return package_root / "default_configs" / folder / file_name
+
+    def get_external_config_path(
+        self, folder: str, file_name: str, external_dir: Path | None = None
+    ) -> Path:
+        if external_dir is None:
+            if getattr(sys, "frozen", False):
+                external_dir = Path(sys.executable).resolve().parent
+            else:
+                external_dir = Path(__file__).resolve().parents[4]
+
+        return external_dir / "config" / folder / file_name
 
     def get_config_path(
         self,
@@ -25,21 +36,17 @@ class BaseConfig:
         default_config: Path,
         external_dir: Path | None = None,
     ) -> Path:
-        if external_dir is None:
-            if getattr(sys, "frozen", False):
-                external_dir = Path(sys.executable).resolve().parent
-            else:
-                external_dir = Path(__file__).resolve().parents[4]
-
-        external_config = external_dir / "config" / folder / file_name
 
         path = None
+        external_config = self.get_external_config_path(folder, file_name, external_dir)
         if external_config.exists():
             path = external_config
-            self.cli.print_status(f"Loading config from external file: {path}")
+            self._cli.print_status(
+                f"Loading {file_name} config from external file: {path}"
+            )
 
         else:
-            self.cli.print_status("Loading Config from default config.")
+            self._cli.print_status(f"Loading {file_name} config from default config.")
             path = default_config
 
         return path
