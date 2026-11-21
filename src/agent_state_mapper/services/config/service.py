@@ -49,6 +49,7 @@ class ConfigService:
         self._app_config.apply_config(raw_config)
 
     def load_state_configs(self):
+        self._state_config.clear_alias_set()
         common_config = self.load_state_common_config()
         provider_configs = self.load_state_provider_config()
 

@@ -18,6 +18,7 @@ class StateConfig(BaseConfig):
     def __init__(self, cli: CLI):
         super().__init__(cli)
         self._state_config = None
+        self._alias_set = set()
 
     @property
     def state_settings(self) -> StateSettings:
@@ -26,6 +27,9 @@ class StateConfig(BaseConfig):
     @state_settings.setter
     def state_settings(self, settings: StateSettings) -> StateSettings:
         self._state_config = settings
+
+    def clear_alias_set(self):
+        self._alias_set = set()
 
     def parse_common_config(
         self, config: dict[str, Any], file_name: str
@@ -67,6 +71,8 @@ class StateConfig(BaseConfig):
                 self._cli.print_warn(f"Skipping Aux Mapping from {file_name}")
                 continue
 
+        self._check_aliases(config["provider"], file_name)
+
         return ProviderStates(
             name=provider["name"],
             aliases=provider["aliases"],
@@ -74,6 +80,24 @@ class StateConfig(BaseConfig):
             states=config["states"],
             state_aux_mappings=aux_mappings,
         )
+
+    def _check_aliases(self, config: dict[str, Any], file_name: str):
+        aliases = config["aliases"]
+        if not isinstance(aliases, list):
+            msg = f"Config passed as 'aliases' {type(config)} for {file_name}. aliases must be a list."
+            self._cli.print_error(msg)
+            raise ConfigError(msg)
+
+        provider_alias_no_match = set()
+
+        for alias in aliases:
+            if alias in self._alias_set:
+                msg = f"Config passed {alias} in aliases for {file_name} but alias already used for a different config."
+                self._cli.print_error(msg)
+                raise ConfigError(msg)
+            provider_alias_no_match.add(alias)
+
+        self._alias_set.update(provider_alias_no_match)
 
     def _check_raise_missing_keys(
         self,
