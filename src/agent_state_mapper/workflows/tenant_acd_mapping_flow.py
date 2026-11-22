@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..cli import CLI
     from ..models.intra import Provider
+    from ..services.provider import ProviderResolver
 
 
 from ..models.intra import TenantSelection
@@ -13,6 +14,7 @@ from ..errors import TenantSelectionError
 
 from ..services.provider import ProviderService
 from ..services.elk import ELKService
+from ..models.states import ProviderAnalysis
 
 
 class TenantACDMappingFlow:
@@ -23,12 +25,14 @@ class TenantACDMappingFlow:
         provider_service: ProviderService,
         tenant_selection: TenantSelection,
         elk_service: ELKService,
+        provider_resolver: ProviderResolver,
     ):
 
         self._cli = cli
         self._provider_service = provider_service
         self._tenant_selection = tenant_selection
         self._elk_service = elk_service
+        self._provider_resolver = provider_resolver
 
     def run(self) -> None:
         if self._tenant_selection is None:
@@ -47,20 +51,37 @@ class TenantACDMappingFlow:
             print(intra_call_mappings)
         else:
             self._cli.print_info(
-                "Skipping IntraCall Mappings as couldnot find IntraCall Provider."
+                "Skipping IntraCall Mappings as could not find IntraCall Provider."
             )
 
-        self._get_distinct_states_call_providers(call_providers.acd_providers)
+        providers_analysis = self._get_distinct_states_call_providers(
+            call_providers.acd_providers
+        )
 
-    def _get_distinct_states_call_providers(self, call_providers: list[Provider]):
+    def _get_distinct_states_call_providers(
+        self, call_providers: list[Provider]
+    ) -> list[ProviderAnalysis]:
+        providers_result = []
+
         for index, provider in enumerate(call_providers, start=1):
             self._cli.print_status(
                 f"Provider {index}/{len(call_providers)}: {provider.name}"
             )
-            states = self._elk_service.distinct_acd_states(
+            observed_states = self._elk_service.distinct_acd_states(
                 tenant_selection=self._tenant_selection,
                 provider_instance=provider,
                 day_range=7,
             )
-            print("states found \n")
-            print(states)
+
+            provider_resolution = self._provider_resolver.resolve(
+                provider=provider, observed_states=observed_states
+            )
+
+            providers_result.append(
+                ProviderAnalysis(
+                    provider=provider,
+                    observed_states=observed_states,
+                    resolution=provider_resolution,
+                )
+            )
+        return providers_result

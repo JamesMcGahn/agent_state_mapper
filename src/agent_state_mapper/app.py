@@ -40,7 +40,12 @@ from .services.ide_audit import (
     TenantIDEAuditSheetService,
 )
 from .services.elk import ELKAPI, ELKService
-from .services.provider import ProviderService, ProviderQueryWorker, ProviderDAL
+from .services.provider import (
+    ProviderService,
+    ProviderQueryWorker,
+    ProviderDAL,
+    ProviderResolver,
+)
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
 from .errors import TenantSelectionError
@@ -127,6 +132,9 @@ class App:
         self._provider_service = ProviderService(
             cli=self.cli, db=self._sql_conn_manager, worker=self._provider_query
         )
+        self._provider_resolver = ProviderResolver(
+            cli=self.cli, get_configs=self._config_service.get_state_config
+        )
         # -----ELK-------
         self._elk_api = ELKAPI(
             cli=self.cli,
@@ -188,6 +196,7 @@ class App:
                 provider_service=self._provider_service,
                 tenant_selection=self.user_tenant_selection,
                 elk_service=self._elk_service,
+                provider_resolver=self._provider_resolver,
             ),
         }
         try:
