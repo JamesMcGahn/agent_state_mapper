@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from ..cli import CLI
     from ..models.intra import Provider
     from ..services.provider import ProviderResolver
+    from ..models.intra import StateResult
+    from ..services.mapping import StateMappingAnalyzer
 
 
 from ..models.intra import TenantSelection
@@ -15,6 +17,7 @@ from ..errors import TenantSelectionError
 from ..services.provider import ProviderService
 from ..services.elk import ELKService
 from ..models.states import ProviderAnalysis
+from ..errors import UnresolvedProviderError
 
 
 class TenantACDMappingFlow:
@@ -26,6 +29,7 @@ class TenantACDMappingFlow:
         tenant_selection: TenantSelection,
         elk_service: ELKService,
         provider_resolver: ProviderResolver,
+        state_mapping_analyzer: StateMappingAnalyzer,
     ):
 
         self._cli = cli
@@ -33,6 +37,7 @@ class TenantACDMappingFlow:
         self._tenant_selection = tenant_selection
         self._elk_service = elk_service
         self._provider_resolver = provider_resolver
+        self._state_mapping_analyzer = state_mapping_analyzer
 
     def run(self) -> None:
         if self._tenant_selection is None:
@@ -43,6 +48,7 @@ class TenantACDMappingFlow:
         )
         print(call_providers)
 
+        intra_call_mappings = None
         if call_providers.intra_call_provider is not None:
             intra_call_mappings = self._provider_service.fetch_intra_call_states(
                 tenant_selection=self._tenant_selection,
@@ -55,11 +61,19 @@ class TenantACDMappingFlow:
             )
 
         providers_analysis = self._get_distinct_states_call_providers(
-            call_providers.acd_providers
+            call_providers.acd_providers, intra_call_mappings
         )
 
+        providers_state_mapping = self._get_state_mapping_analyses(providers_analysis)
+
+    def _get_state_mapping_analyses(self, providers_analysis: list[ProviderAnalysis]):
+        return [
+            self._state_mapping_analyzer.analyze(provider_analysis)
+            for provider_analysis in providers_analysis
+        ]
+
     def _get_distinct_states_call_providers(
-        self, call_providers: list[Provider]
+        self, call_providers: list[Provider], intra_call_mappings: StateResult
     ) -> list[ProviderAnalysis]:
         providers_result = []
 
@@ -72,14 +86,19 @@ class TenantACDMappingFlow:
                 provider_instance=provider,
                 day_range=7,
             )
-
-            provider_resolution = self._provider_resolver.resolve(
-                provider=provider, observed_states=observed_states
-            )
+            try:
+                provider_resolution = self._provider_resolver.resolve(
+                    provider=provider, observed_states=observed_states
+                )
+            except UnresolvedProviderError:
+                msg = f"Skipping {provider.name} - {provider.guid} no matching provider configuration could be resolved from states or name."
+                self._cli.print_error(msg)
+                continue
 
             providers_result.append(
                 ProviderAnalysis(
                     provider=provider,
+                    intra_call_provider=intra_call_mappings,
                     observed_states=observed_states,
                     resolution=provider_resolution,
                 )

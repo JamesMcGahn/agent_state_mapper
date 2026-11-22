@@ -46,6 +46,8 @@ from .services.provider import (
     ProviderDAL,
     ProviderResolver,
 )
+
+from .services.mapping import StateMappingAnalyzer
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
 from .errors import TenantSelectionError
@@ -144,6 +146,9 @@ class App:
         self._elk_service = ELKService(cli=self.cli, elk_api=self._elk_api)
 
         # -----STATE MAPPING-------
+        self._state_mapping_analyzer = StateMappingAnalyzer(
+            self.cli, get_configs=self._config_service.get_state_config
+        )
 
     @property
     def user_tenant_selection(self):
@@ -197,6 +202,7 @@ class App:
                 tenant_selection=self.user_tenant_selection,
                 elk_service=self._elk_service,
                 provider_resolver=self._provider_resolver,
+                state_mapping_analyzer=self._state_mapping_analyzer,
             ),
         }
         try:

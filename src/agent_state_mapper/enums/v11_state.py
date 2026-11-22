@@ -1,0 +1,27 @@
+from enum import StrEnum
+
+
+class V11_STATE(StrEnum):
+    ACW = "ACW"
+    BREAK = "Break"
+    COACHING = "Coaching"
+    CONSULT = "Consult"
+    DEFAULT = "Default"
+    END_DAY = "End Day"
+    HOLD = "Hold"
+    HUDDLE = "Huddle"
+    LOGGED_IN = "Logged In"
+    LOGGED_OUT = "Logged Out"
+    LUNCH = "Lunch"
+    MEETING = "Meeting"
+    NOT_READY = "Not Ready"
+    OFF_PHONE_WORK = "Off-Phone Work"
+    OUTBOUND = "Outbound"
+    PERSONAL = "Personal"
+    PROJECT = "Project"
+    READY = "Ready"
+    START_UP = "Start Up"
+    SYSTEM_ISSUE = "System Issue"
+    TALK = "Talk"
+    TRAINING = "Training"
+    NOT_MAPPED = ""
