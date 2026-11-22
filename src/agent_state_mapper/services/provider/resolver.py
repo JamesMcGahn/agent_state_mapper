@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from ...models.states import ProviderResolution
 from ...enums import PROVIDER_MATCH_BY
+from ...errors import UnresolvedProviderError
 
 
 class ProviderResolver:
@@ -21,14 +22,17 @@ class ProviderResolver:
 
     def resolve(
         self, provider: Provider, observed_states: StatesResult
-    ) -> ProviderResolution | None:
-
+    ) -> ProviderResolution:
+        msg = f"Resolving Provider {provider.name} - {provider.guid} to configured providers."
+        self._cli.print_info(msg)
         state_configs = self._get_configs()
         provider_configs = state_configs.providers
         match = self._find_matched_provider_by_alias(
             provider, provider_configs, observed_states
         )
         if match is not None:
+            msg = f"Resolved Provider {provider.name} - {provider.guid} as {match.config.name}."
+            self._cli.print_info(msg)
             return match
 
         matches = self._find_matched_providers_by_state(
@@ -36,17 +40,26 @@ class ProviderResolver:
         )
 
         if not matches:
-            return None
+            msg = f"Could not find matching provider for {provider.name} - {provider.guid}"
+            self._cli.print_error(msg)
+            raise UnresolvedProviderError(msg)
 
         if len(matches) == 1:
-            return matches[0]
+            match_winner = matches[0]
+            msg = f"Resolved Provider {provider.name} - {provider.guid} as {match_winner.config.name}."
+            self._cli.print_info(msg)
+            return match_winner
 
         matches.sort(key=lambda candidate: candidate.match_percentage, reverse=True)
-
+        match_winner = matches[0]
         if matches[0].match_percentage - matches[1].match_percentage > 5:
-            return matches[0]
+            msg = f"Resolved Provider {provider.name} - {provider.guid} as {match_winner.config.name}."
+            self._cli.print_info(msg)
+            return match_winner
 
-        return None
+        msg = f"Could not find matching provider for {provider.name} - {provider.guid}"
+        self._cli.print_error(msg)
+        raise UnresolvedProviderError(msg)
 
     def _find_matched_provider_by_alias(
         self,
