@@ -22,6 +22,8 @@ class StateMappingAnalyzer:
         self._get_configs = get_configs
         self._states_mapped: dict[tuple[str, str], StateMappingResult] = {}
 
+        self._state_map_count_before: int = 0
+
     def reset_mapping_cache(self):
         self._states_mapped = {}
 
@@ -36,13 +38,36 @@ class StateMappingAnalyzer:
             msg = f"Cannot map states for unresolved provider: {provider_analysis.provider.name}"
             self._cli.print_error(msg)
             raise UnresolvedProviderError(msg)
-        self._map_call_analysis_provider(provider_analysis, resolution)
-        self._map_provider_config_state_aux_mappings(resolution)
-        self._map_observed_states_on_common_aux_exact(provider_analysis)
-        self._map_observed_states_on_common_aux_keywords(provider_analysis)
 
+        self._start_status_message("IntraCall")
+        self._map_call_analysis_provider(provider_analysis, resolution)
+        self._end_status_message("IntraCall")
+
+        self._start_status_message("Provider Config State/Aux")
+        self._map_provider_config_state_aux_mappings(resolution)
+        self._end_status_message("Provider Config State/Aux")
+
+        self._start_status_message("Common Config Exact Aux")
+        self._map_observed_states_on_common_aux_exact(provider_analysis)
+        self._end_status_message("Common Config Exact Aux")
+
+        self._start_status_message("Common Config Aux Keywords")
+        self._map_observed_states_on_common_aux_keywords(provider_analysis)
+        self._end_status_message("Common Config Aux Keywords")
+
+        self._start_status_message("Provider Config Base States")
+        self._map_provider_config_base_states(resolution)
+        self._end_status_message("Provider Config Base States")
+
+        self._start_status_message("Unmatched Observed States")
+        self._map_observed_unmatched_state(provider_analysis)
+        self._end_status_message("Unmatched Observed States")
+
+        needs_review = [
+            state for state in self._states_mapped.values() if state.needs_review
+        ]
         self._cli.print_status(
-            f"Completed State Analyzation for {provider_analysis.provider.name}"
+            f"Completed State Analyzation for {provider_analysis.provider.name}. Added {len(self._states_mapped)} mappings, {len(needs_review)} requiring review."
         )
         return ProviderMappingResult(
             analysis=provider_analysis,
@@ -51,6 +76,56 @@ class StateMappingAnalyzer:
 
     def _collect_states(self) -> list[StateMappingResult]:
         return list(self._states_mapped.values())
+
+    def _start_status_message(self, mapping_step_name: str):
+        self._cli.print_info(f"Starting {mapping_step_name} mapping...")
+        self._state_map_count_before = len(self._states_mapped)
+
+    def _end_status_message(self, mapping_step_name: str):
+        states_added = len(self._states_mapped) - self._state_map_count_before
+        self._cli.print_status(
+            f"Completed {mapping_step_name} mapping: {states_added} mappings added"
+        )
+
+    def _map_observed_unmatched_state(self, provider_analysis: ProviderAnalysis):
+        for state in provider_analysis.observed_states.states:
+            key = (state.state, state.aux)
+
+            if key in self._states_mapped:
+                continue
+
+            self._states_mapped[key] = StateMappingResult(
+                state=state,
+                target=V11_STATE.NOT_MAPPED,
+                source=MAPPING_SOURCE.NO_SOURCE,
+                needs_review=True,
+                reason="No mapping rule matched this state/AUX pair.",
+            )
+
+    def _map_provider_config_base_states(self, provider_resolution: ProviderResolution):
+        provider_config = provider_resolution.config
+
+        for state_name in provider_config.base_states:
+            state_aux_pair = (state_name, "")
+            if state_aux_pair in self._states_mapped:
+                continue
+
+            target = provider_config.states.get(state_name)
+            target = self.convert_state_str_to_v11_state(target)
+
+            state = State(state=state_name, aux="")
+
+            self._states_mapped[state_aux_pair] = StateMappingResult(
+                state=state,
+                target=target,
+                source=MAPPING_SOURCE.PROVIDER_BASE_STATE,
+                needs_review=target == V11_STATE.NOT_MAPPED,
+                reason=(
+                    "Cannot find V11 State for base state."
+                    if target == V11_STATE.NOT_MAPPED
+                    else None
+                ),
+            )
 
     def _map_provider_config_state_aux_mappings(
         self, provider_resolution: ProviderResolution
@@ -164,7 +239,7 @@ class StateMappingAnalyzer:
     ):
         call_analysis_mapping = provider_analysis.intra_call_provider
         provider_config = provider_resolution.config
-        self._cli.print_info("Starting Analysis Mapping...")
+
         if call_analysis_mapping is None:
             self._cli.print_info(
                 "Skipping Call Analysis Mapping as IntraCall Provider is not available."
@@ -190,7 +265,6 @@ class StateMappingAnalyzer:
                         else None
                     ),
                 )
-        self._cli.print_status("Completed Analysis Mapping...")
 
     def convert_legacy_to_v11_state(self, original_mapping: str) -> V11_STATE:
         state_settings = self._get_configs()

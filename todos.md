@@ -10,5 +10,6 @@
 - [x] Add existing V10 mapping translation and customer overrides.
 - [x] Implement exact state + AUX combination mappings.
 - [x] Add keyword-based AUX inference.
-- [ ] Implement provider base states mapping
+- [x] Implement provider base states mapping
+- [x] Implement observed unmatched states
 - [ ] Generate the Excel report with mapping sources and review flags.
