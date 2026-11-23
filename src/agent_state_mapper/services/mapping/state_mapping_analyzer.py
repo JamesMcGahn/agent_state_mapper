@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import re
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
@@ -39,6 +39,7 @@ class StateMappingAnalyzer:
         self._map_call_analysis_provider(provider_analysis, resolution)
         self._map_provider_config_state_aux_mappings(resolution)
         self._map_observed_states_on_common_aux_exact(provider_analysis)
+        self._map_observed_states_on_common_aux_keywords(provider_analysis)
 
         self._cli.print_status(
             f"Completed State Analyzation for {provider_analysis.provider.name}"
@@ -102,6 +103,59 @@ class StateMappingAnalyzer:
                     "Cannot find V11 State" if target == V11_STATE.NOT_MAPPED else None
                 ),
             )
+
+    def _map_observed_states_on_common_aux_keywords(
+        self, provider_analysis: ProviderAnalysis
+    ):
+        state_settings = self._get_configs()
+        if state_settings is None:
+            raise RuntimeError("State Settings is None.")
+
+        keywords_aux = state_settings.common.aux_keywords
+        observed_states = provider_analysis.observed_states
+        for state in observed_states.states:
+            state_aux_pair = (state.state, state.aux)
+            if state_aux_pair in self._states_mapped:
+                continue
+
+            matches = []
+            for keyword, target in keywords_aux.items():
+                keyword = keyword.strip()
+                if not keyword:
+                    continue
+
+                pattern = rf"(?<!\w){re.escape(keyword)}(?!\w)"
+                if re.search(pattern, state.aux, flags=re.IGNORECASE):
+                    matches.append((keyword, target))
+
+            targets = {target for _, target in matches}
+
+            if not targets:
+                continue
+
+            if len(targets) == 1:
+                target = next(iter(targets))
+                target = self.convert_state_str_to_v11_state(target)
+
+                self._states_mapped[state_aux_pair] = StateMappingResult(
+                    state=state,
+                    target=target,
+                    source=MAPPING_SOURCE.COMMON_KEYWORD_MATCH,
+                    needs_review=target == V11_STATE.NOT_MAPPED,
+                    reason=(
+                        "Cannot find V11 State"
+                        if target == V11_STATE.NOT_MAPPED
+                        else None
+                    ),
+                )
+            else:
+                self._states_mapped[state_aux_pair] = StateMappingResult(
+                    state=state,
+                    target=V11_STATE.NOT_MAPPED,
+                    source=MAPPING_SOURCE.COMMON_KEYWORD_MATCH,
+                    needs_review=True,
+                    reason=f"Multiple keyword matches were matched: {", ".join(targets)}",
+                )
 
     def _map_call_analysis_provider(
         self,
