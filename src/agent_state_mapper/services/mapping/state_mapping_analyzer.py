@@ -12,6 +12,7 @@ from ...enums import V11_STATE, MAPPING_SOURCE
 
 from ...models.mapping import StateMappingResult, ProviderMappingResult
 from ...errors import UnresolvedProviderError
+from ...models.intra import State
 
 
 class StateMappingAnalyzer:
@@ -36,6 +37,8 @@ class StateMappingAnalyzer:
             self._cli.print_error(msg)
             raise UnresolvedProviderError(msg)
         self._map_call_analysis_provider(provider_analysis, resolution)
+        self._map_provider_config_state_aux_mappings(resolution)
+        self._map_observed_states_on_common_aux_exact(provider_analysis)
 
         self._cli.print_status(
             f"Completed State Analyzation for {provider_analysis.provider.name}"
@@ -47,6 +50,58 @@ class StateMappingAnalyzer:
 
     def _collect_states(self) -> list[StateMappingResult]:
         return list(self._states_mapped.values())
+
+    def _map_provider_config_state_aux_mappings(
+        self, provider_resolution: ProviderResolution
+    ):
+        provider_config = provider_resolution.config
+        for (state_name, aux), target in provider_config.state_aux_mappings.items():
+            target = self.convert_state_str_to_v11_state(target)
+            state_aux_pair = (state_name, aux)
+            if state_aux_pair in self._states_mapped:
+                continue
+
+            state = State(state=state_name, aux=aux)
+            self._states_mapped[state_aux_pair] = StateMappingResult(
+                state=state,
+                target=target,
+                source=MAPPING_SOURCE.PROVIDER_STATE_AUX_MATCH,
+                needs_review=target == V11_STATE.NOT_MAPPED,
+                reason=(
+                    "Cannot find V11 State" if target == V11_STATE.NOT_MAPPED else None
+                ),
+            )
+
+    def _map_observed_states_on_common_aux_exact(
+        self, provider_analysis: ProviderAnalysis
+    ):
+        state_settings = self._get_configs()
+        if state_settings is None:
+            raise RuntimeError("State Settings is None.")
+
+        exact_aux = state_settings.common.exact_aux_matches
+        observed_states = provider_analysis.observed_states
+        for state in observed_states.states:
+
+            if state.aux not in exact_aux:
+                continue
+
+            state_aux_pair = (state.state, state.aux)
+
+            if state_aux_pair in self._states_mapped:
+                continue
+
+            target = self.convert_state_str_to_v11_state(exact_aux[state.aux])
+
+            self._states_mapped[state_aux_pair] = StateMappingResult(
+                state=state,
+                target=target,
+                source=MAPPING_SOURCE.COMMON_AUX_MATCH,
+                needs_review=target == V11_STATE.NOT_MAPPED,
+                reason=(
+                    "Cannot find V11 State" if target == V11_STATE.NOT_MAPPED else None
+                ),
+            )
 
     def _map_call_analysis_provider(
         self,
@@ -75,6 +130,11 @@ class StateMappingAnalyzer:
                     target=target,
                     source=MAPPING_SOURCE.CALL_ANALYSIS,
                     needs_review=target == V11_STATE.NOT_MAPPED,
+                    reason=(
+                        "Cannot find V11 State"
+                        if target == V11_STATE.NOT_MAPPED
+                        else None
+                    ),
                 )
         self._cli.print_status("Completed Analysis Mapping...")
 
@@ -87,5 +147,11 @@ class StateMappingAnalyzer:
         try:
             new_state = legacy_states.get(original_mapping)
             return V11_STATE(new_state)
+        except ValueError:
+            return V11_STATE.NOT_MAPPED
+
+    def convert_state_str_to_v11_state(self, state_str: str) -> V11_STATE:
+        try:
+            return V11_STATE(state_str)
         except ValueError:
             return V11_STATE.NOT_MAPPED

@@ -8,7 +8,7 @@
 - [x] Implement the provider resolver using those aliases.
 - [x] Validate provider identification against known base states.
 - [x] Add existing V10 mapping translation and customer overrides.
-- [ ] Implement exact state + AUX combination mappings.
+- [x] Implement exact state + AUX combination mappings.
 - [ ] Add keyword-based AUX inference.
 - [ ] Implement provider base states mapping
 - [ ] Generate the Excel report with mapping sources and review flags.
