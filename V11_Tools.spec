@@ -3,14 +3,35 @@
 import glob
 import importlib.util
 import os
+from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
 
 
+# Resolve build inputs relative to this spec, including Git-ignored defaults.
+project_root = Path(SPECPATH)
+default_configs = project_root / 'src/agent_state_mapper/default_configs'
+required_configs = (
+    'app/default_config.toml',
+    'states/common.toml',
+    'states/avaya.toml',
+)
+missing_configs = [
+    str(default_configs / name)
+    for name in required_configs
+    if not (default_configs / name).is_file()
+]
+if missing_configs:
+    raise RuntimeError(
+        'Required default configs are missing. These files are Git-ignored; '
+        'provide them on the build machine before building:\n'
+        + '\n'.join(missing_configs)
+    )
+
 # Collect mssql-python dependencies
 datas = [
-    ('src/agent_state_mapper/default_configs','agent_state_mapper/default_configs'),
-    ('LICENSE', '.'),
+    (str(default_configs), 'agent_state_mapper/default_configs'),
+    (str(project_root / 'LICENSE'), '.'),
 ]
 binaries = []
 hiddenimports = []
@@ -43,8 +64,8 @@ binaries.extend(
 
 
 a = Analysis(
-    ['launcher.py'],
-    pathex=['src'],
+    [str(project_root / 'launcher.py')],
+    pathex=[str(project_root / 'src')],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -77,5 +98,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets/app.ico'],
+    icon=[str(project_root / 'assets/app.ico')],
 )
