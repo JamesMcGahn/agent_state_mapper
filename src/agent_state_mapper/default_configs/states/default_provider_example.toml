@@ -3,7 +3,8 @@ name = "Example"
 
 aliases = ["example_acd"]
 
-base_states = ["Ready", "Not Ready", "Talking", "Work", "Logged Out"]
+base_states = ["Ready", "Not Ready", "Talking", "Work", "Logged Out", "Hold"]
+on_call_states = ["Talking", "Hold"]
 
 [states]
 "Ready" = "Available"

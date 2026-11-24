@@ -50,26 +50,30 @@ class StateConfig(BaseConfig):
         )
 
         self._check_raise_missing_keys(
-            config["provider"], ["name", "aliases", "base_states"], file_name
+            config["provider"],
+            ["name", "aliases", "base_states", "on_call_states"],
+            file_name,
         )
 
         provider = config["provider"]
         state_aux_mappings = config["state_aux_mappings"]
-        if not isinstance(state_aux_mappings, list):
-            msg = f"state_aux_mappings passed as type {type(state_aux_mappings)} and needs to be a list."
-            self._cli.print_error(msg)
-            raise ConfigError(msg)
+
+        self._check_key_passed_list(config, "state_aux_mappings")
+        self._check_key_passed_list(provider, "base_states")
+        self._check_key_passed_list(provider, "on_call_states")
+        self._base_states_in_on_call_states(provider, file_name)
 
         aux_mappings = {}
-        for mapping in state_aux_mappings:
-            try:
-                self._check_raise_missing_keys(
-                    mapping, ["state", "aux", "target"], file_name
-                )
-                aux_mappings[(mapping["state"], mapping["aux"])] = mapping["target"]
-            except Exception:
-                self._cli.print_warn(f"Skipping Aux Mapping from {file_name}")
-                continue
+        if len(state_aux_mappings):
+            for mapping in state_aux_mappings:
+                try:
+                    self._check_raise_missing_keys(
+                        mapping, ["state", "aux", "target"], file_name
+                    )
+                    aux_mappings[(mapping["state"], mapping["aux"])] = mapping["target"]
+                except Exception:
+                    self._cli.print_warn(f"Skipping Aux Mapping from {file_name}")
+                    continue
 
         self._check_aliases(config["provider"], file_name)
 
@@ -77,6 +81,7 @@ class StateConfig(BaseConfig):
             name=provider["name"],
             aliases=provider["aliases"],
             base_states=provider["base_states"],
+            on_call_states=provider["on_call_states"],
             states=config["states"],
             state_aux_mappings=aux_mappings,
         )
@@ -98,6 +103,14 @@ class StateConfig(BaseConfig):
             provider_alias_no_match.add(alias)
 
         self._alias_set.update(provider_alias_no_match)
+
+    def _check_key_passed_list(self, config: dict[str, Any], key: str) -> None:
+        field = config.get(key)
+
+        if not isinstance(field, list):
+            msg = f"{key} passed as type {type(field)} and needs to be a list."
+            self._cli.print_error(msg)
+            raise ConfigError(msg)
 
     def _check_raise_missing_keys(
         self,
@@ -123,3 +136,12 @@ class StateConfig(BaseConfig):
             msg = f"{",".join(missing)} missing from states {file_name}."
             self._cli.print_error(msg)
             raise ConfigError(msg)
+
+    def _base_states_in_on_call_states(self, config: dict[str, Any], file_name: str):
+        unknown_states = set(config["on_call_states"]) - set(config["base_states"])
+
+        if unknown_states:
+            raise ConfigError(
+                f"{file_name}: on_call_states contains states absent from "
+                f"base_states: {', '.join(sorted(unknown_states))}"
+            )
