@@ -47,7 +47,7 @@ from .services.provider import (
     ProviderResolver,
 )
 
-from .services.mapping import StateMappingAnalyzer
+from .services.state_mapping import StateMappingAnalyzer
 from .db import SQLConnectionManager
 from .models.intra import TenantSelection
 from .errors import TenantSelectionError

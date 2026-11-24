@@ -14,5 +14,6 @@ class StateMappingResult:
     state: State
     target: V11_STATE
     source: MAPPING_SOURCE
+    is_on_call: bool
     needs_review: bool
     reason: str | None = None

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from ..models.intra import Provider
     from ..services.provider import ProviderResolver
     from ..models.intra import StateResult
-    from ..services.mapping import StateMappingAnalyzer
+    from ..services.state_mapping import StateMappingAnalyzer
 
 
 from ..models.intra import TenantSelection
