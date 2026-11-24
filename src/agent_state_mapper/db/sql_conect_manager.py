@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from ..cli import CLI
 
 from mssql_python import connect, Error as SQLERROR, OperationalError
-import sqlite3
 from ..errors.db import DBConnectionError
 
 
@@ -41,7 +40,7 @@ class SQLConnectionManager:
                 )
                 raise
         except Exception as e:
-            print(e)
+            self._cli.print_error(f"{self.__class__.__name__}: Error - {e}")
             raise
 
     def execute_query(self, query, params=None) -> Cursor:
@@ -77,7 +76,6 @@ class SQLConnectionManager:
         :param params: Optional tuple of parameters to use in the query.
         :return: A list of rows from the result set.
         """
-        # print("fetch_all", query, params)
         cursor = self.execute_query(query, params)
         try:
 
