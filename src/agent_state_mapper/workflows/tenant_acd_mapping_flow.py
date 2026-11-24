@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from ..models.intra import Provider
     from ..services.provider import ProviderResolver
     from ..models.intra import StateResult
-    from ..services.state_mapping import StateMappingAnalyzer
+    from ..services.state_mapping import StateMappingAnalyzer, StateMappingSheetService
 
 
 from ..models.intra import TenantSelection
@@ -30,6 +30,7 @@ class TenantACDMappingFlow:
         elk_service: ELKService,
         provider_resolver: ProviderResolver,
         state_mapping_analyzer: StateMappingAnalyzer,
+        reports: StateMappingSheetService,
     ):
 
         self._cli = cli
@@ -38,6 +39,7 @@ class TenantACDMappingFlow:
         self._elk_service = elk_service
         self._provider_resolver = provider_resolver
         self._state_mapping_analyzer = state_mapping_analyzer
+        self._reports = reports
 
     def run(self) -> None:
         if self._tenant_selection is None:
@@ -65,6 +67,16 @@ class TenantACDMappingFlow:
         )
 
         providers_state_mapping = self._get_state_mapping_analyses(providers_analysis)
+
+        output_path = self._reports.get_output_path(
+            file_name=f"{self._tenant_selection.tenant.name}_v11_state_mapping",
+            tenant=self._tenant_selection.tenant,
+        )
+        self._reports.write_analyze(
+            tenant_selection=self._tenant_selection,
+            providers_mappings=providers_state_mapping,
+            output_path=output_path,
+        )
 
     def _get_state_mapping_analyses(self, providers_analysis: list[ProviderAnalysis]):
         return [
